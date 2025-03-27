@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>H.264解码查看器</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .sample-selector {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .sample-select {
+            padding: 6px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background-color: white;
+            font-size: 14px;
+            color: var(--text-color);
+            cursor: pointer;
+        }
+
+        .sample-select:hover {
+            border-color: var(--primary-color);
+        }
+
+        .sample-select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>H.264解码查看器</h1>
+        
+        <div class="upload-section expanded" id="uploadSection">
+            <input type="file" id="fileInput" accept=".264,.h264" style="display: none;">
+            <div class="drop-text">
+                <strong>点击选择</strong> 或拖放 H.264 文件到这里
+            </div>
+            <div class="file-actions">
+                <button class="control-button" onclick="document.getElementById('fileInput').click()">选择文件</button>
+                <div class="sample-selector">
+                    <select id="sampleSelect" class="sample-select">
+                        <option value="720p30">样例 720p 30fps</option>
+                        <option value="1080p30">样例 1080p 30fps</option>
+                    </select>
+                    <button class="control-button" onclick="app.loadSampleData()" style="background-color: var(--success-color);">加载样例</button>
+                </div>
+            </div>
+            <div class="file-info">
+                <div class="file-info-group">
+                    <span class="file-name"></span>
+                    <span class="file-size"></span>
+                </div>
+            </div>
+            <div class="video-info">
+                <div class="info-item">
+                    <span class="info-label">分辨率:</span>
+                    <span id="resolution" class="info-value">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">总帧数:</span>
+                    <span id="frameCount" class="info-value">0</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">帧率:</span>
+                    <span id="framerate" class="info-value">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">码率:</span>
+                    <span id="bitrate" class="info-value">-</span>
+                </div>
+            </div>
+            <div class="file-actions">
+                <button id="clearFile" class="control-button danger" style="display: none;">清除文件</button>
+            </div>
+            <div class="progress-container" id="progressContainer" style="display: none;">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressBar"></div>
+                </div>
+                <div class="progress-text" id="progressText">0%</div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="tab-controls">
+                <button class="tab-button active" data-tab="frame-preview">帧预览</button>
+                <button class="tab-button" data-tab="nalu-analysis">NALU分析</button>
+            </div>
+
+            <div class="tab-content active" id="frame-preview">
+                <div class="frame-preview">
+                    <div class="frame-info-panel">
+                        <div class="frame-header">
+                            <div class="frame-details">
+                                <span>当前帧：<strong id="currentFrameInfo">未加载</strong></span>
+                                <span>帧类型：<strong id="frameType">-</strong></span>
+                                <span>帧类型统计：<strong id="frameTypeStats">-</strong></span>
+                            </div>
+                            <div class="frame-controls">
+                                <button id="playPauseButton" class="control-button" disabled>播放</button>
+                                <div class="speed-control">
+                                    <label>帧率：</label>
+                                    <input type="number" id="playbackFps" value="30" min="1" max="120" style="width: 60px;">
+                                    <span>fps</span>
+                                </div>
+                                <div class="playback-option">
+                                    <input type="checkbox" id="loopPlayback" checked>
+                                    <label for="loopPlayback">循环播放</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="frame-list-container">
+                            <button class="frame-list-nav prev" id="prevFrames" disabled>◀</button>
+                            <div id="frameList"></div>
+                            <button class="frame-list-nav next" id="nextFrames" disabled>▶</button>
+                        </div>
+                    </div>
+
+                    <div class="frame-canvas-container">
+                        <canvas id="frameCanvas"></canvas>
+                        <div class="frame-error-overlay" id="frameError">
+                            帧解码失败
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="nalu-analysis">
+                <div class="h264-analysis">
+                    <div class="nalu-info-panel">
+                        <div class="nalu-info-header">
+                            <h3>NALU 信息</h3>
+                            <div class="nalu-navigation">
+                                <button id="prevNalu" class="control-button">上一个</button>
+                                <span class="nalu-counter">NALU: <span id="naluCounter">0/0</span></span>
+                                <button id="nextNalu" class="control-button">下一个</button>
+                            </div>
+                        </div>
+                        <div id="naluInfo">
+                            <div class="nalu-type">未选择 NALU</div>
+                            <div class="nalu-details"></div>
+                        </div>
+                    </div>
+
+                    <div class="hex-viewer">
+                        <div class="hex-viewer-header">
+                            <h3>十六进制查看器</h3>
+                        </div>
+                        <div class="hex-content" id="hexContent"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.11.0/dist/ffmpeg.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js"></script>
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
