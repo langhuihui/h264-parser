@@ -179,6 +179,7 @@ export class AppState {
     // 实际实现需要解析 SPS/PPS 来获取编解码器字符串和描述
     const codecConfig = {
       codec: 'avc1.64001f', // 这是一个示例，需要动态生成
+      optimizeForLatency: true,
       // description: extracted_description, // 从 SPS/PPS 提取
       // hardwareAcceleration: 'prefer-hardware',
     };

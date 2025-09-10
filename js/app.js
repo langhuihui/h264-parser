@@ -205,7 +205,7 @@ class App {
         this.state.setDecoder(newDecoder);
         await this.state.init();
         this.ui.hideProgress();
-        this.utils.showSuccess(`成功切换到 ${newDecoder === 'ffmpeg' ? 'FFmpeg' : 'WebCodecs'}`);
+        console.log(`成功切换到 ${newDecoder === 'ffmpeg' ? 'FFmpeg' : 'WebCodecs'}`);
         this.setUIEnabled(true); // Enable UI after successful switch and init
       } catch (error) {
         console.error('解码器切换失败:', error);

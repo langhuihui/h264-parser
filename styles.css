@@ -1052,5 +1052,114 @@ body {
 
 .upload-section.has-file .video-info {
     background-color: rgba(40, 167, 69, 0.1);
-} 
+}
+
+/* 序列参数集(SPS)信息专用样式 */
+.sps-info {
+  margin-top: 15px;
+  background-color: white;
+  border-radius: 4px;
+  font-size: 13px;
+  padding: 10px;
+}
+
+.sps-info h4 {
+  margin: 0 0 10px 0;
+  padding: 6px 0;
+  color: #F44336; /* SPS类型的颜色 */
+  font-size: 15px;
+  border-bottom: 1px solid var(--border-color);
+  text-align: center;
+}
+
+.sps-section {
+  margin-bottom: 15px;
+  background-color: var(--light-color);
+  border-radius: 4px;
+  padding: 8px;
+}
+
+.sps-section h5 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: var(--dark-color);
+  padding-bottom: 5px;
+  border-bottom: 1px dashed var(--border-color);
+}
+
+.sps-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.sps-table tr {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.sps-table tr:last-child {
+  border-bottom: none;
+}
+
+.sps-table td {
+  padding: 6px;
+  vertical-align: top;
+}
+
+.sps-table td:first-child {
+  width: 40%;
+  color: var(--secondary-color);
+  font-weight: 500;
+}
+
+.sps-table td:last-child {
+  color: var(--dark-color);
+  font-weight: 500;
+}
+
+/* SPS解析错误状态 */
+.sps-info.error {
+  background-color: rgba(220, 53, 69, 0.1);
+  padding: 15px;
+  border-left: 3px solid var(--danger-color);
+}
+
+.sps-info.error h4 {
+  color: var(--danger-color);
+  border-bottom: none;
+  margin-bottom: 5px;
+}
+
+.sps-info.error p {
+  color: var(--danger-color);
+  margin: 5px 0;
+}
+
+.error-details {
+  font-family: monospace;
+  font-size: 12px;
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 8px;
+  border-radius: 3px;
+  overflow-x: auto;
+}
+
+/* 序列参数集字节解析视觉增强 */
+.hex-byte.sps-header {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.hex-byte.sps-profile {
+  background-color: #9C27B0; /* 紫色用于Profile相关字节 */
+}
+
+.hex-byte.sps-level {
+  background-color: #FF9800; /* 橙色用于Level相关字节 */
+}
+
+.hex-byte.sps-size {
+  background-color: #4CAF50; /* 绿色用于尺寸相关字节 */
+}
+
+/* 在十六进制显示中为SPS字节添加特殊颜色提示*/
 

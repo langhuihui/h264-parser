@@ -1,30 +1,31 @@
+import { Utils } from './utils.js';
+
 export class PlaybackController {
   constructor(state, ui) {
     this.state = state;
     this.ui = ui;
     this.fps = 30; // Default FPS, consider getting from video info
-    this.currentlyDisplayedFrame = null; // To manage closing previous frame
+    this.currentlyDisplayedFrame = null; // 保留引用，但不再用于关闭
   }
 
   togglePlayback() {
-    console.log('PlaybackController.togglePlayback called. isPlaying:', this.state.isPlaying); // <-- Add log here
+    console.log('PlaybackController.togglePlayback called. isPlaying:', this.state.isPlaying);
     if (this.state.isPlaying) {
       this.stopPlayback();
     } else {
       this.startPlayback();
     }
-    // This state update might be redundant if start/stop already set it
-    // this.state.isPlaying = !this.state.isPlaying;
-    // this.updatePlayButton(); // This method seems incorrect, uiHandler should update the button
   }
 
   startPlayback() {
-    console.log('PlaybackController.startPlayback called'); // <-- Add log here
+    console.log('PlaybackController.startPlayback called');
     if (this.state.isPlaying || this.state.frames.length === 0) return;
 
     this.state.isPlaying = true;
     this.ui.updatePlayPauseButton(true); // Use UI handler to update button
 
+    const frameRateInput = document.getElementById('playbackFps');
+    this.fps = parseInt(frameRateInput?.value || 30);
     const interval = 1000 / this.fps;
 
     this.state.playbackInterval = setInterval(() => {
@@ -37,21 +38,9 @@ export class PlaybackController {
       const frameObject = this.state.frames[frameIndex]; // Get the wrapper object
 
       if (frameObject) {
-        // --- Fix close() call ---
-        // Close the *previously* displayed frame's videoFrame
-        if (this.currentlyDisplayedFrame && this.currentlyDisplayedFrame !== frameObject) {
-          try {
-            // Check if it's a WebCodecs frame object before closing
-            if (this.currentlyDisplayedFrame.videoFrame && typeof this.currentlyDisplayedFrame.videoFrame.close === 'function') {
-              this.currentlyDisplayedFrame.videoFrame.close();
-            }
-          } catch (e) {
-            console.warn("Error closing previous frame:", e);
-          }
-        }
-        // Store reference to the current frame *object*
+        // 移除之前的 VideoFrame close 尝试代码
+        // 只保留当前帧的引用
         this.currentlyDisplayedFrame = frameObject;
-        // --- End fix ---
 
         // Draw based on decoder type
         if (this.state.selectedDecoder === 'webcodecs' && frameObject.videoFrame instanceof VideoFrame) {
@@ -60,8 +49,15 @@ export class PlaybackController {
           this.displayFFmpegFrame(frameIndex); // FFmpeg uses index
         }
 
+        // 更新UI元素显示当前帧信息
         this.ui.updatePlaybackTime(frameIndex);
+
+        // 确保在播放过程中高亮正确的帧
         this.ui.highlightFrameInList(frameIndex);
+
+        // 更新当前帧索引信息显示
+        document.getElementById('currentFrameInfo').textContent = `帧 ${this.state.currentFrameIndex + 1}`;
+        document.getElementById('frameType').textContent = Utils.FRAME_TYPES[frameObject.type] || '?';
 
         let nextFrameIndex = frameIndex + 1;
         if (nextFrameIndex >= this.state.frames.length) {
@@ -91,7 +87,7 @@ export class PlaybackController {
   }
 
   stopPlayback() {
-    console.log('PlaybackController.stopPlayback called'); // <-- Add log here
+    console.log('PlaybackController.stopPlayback called');
     if (this.state.playbackInterval) {
       clearInterval(this.state.playbackInterval);
       this.state.playbackInterval = null;
@@ -99,20 +95,8 @@ export class PlaybackController {
     this.state.isPlaying = false;
     this.ui.updatePlayPauseButton(false); // Use UI handler to update button
 
-    // --- Fix close() call ---
-    // Close the last displayed frame's videoFrame when stopping playback
-    if (this.currentlyDisplayedFrame) {
-      try {
-        // Check if it's a WebCodecs frame object before closing
-        if (this.currentlyDisplayedFrame.videoFrame && typeof this.currentlyDisplayedFrame.videoFrame.close === 'function') {
-          this.currentlyDisplayedFrame.videoFrame.close();
-        }
-      } catch (e) {
-        console.warn("Error closing frame on stop:", e);
-      }
-      this.currentlyDisplayedFrame = null;
-    }
-    // --- End fix ---
+    // 移除尝试关闭 VideoFrame 的代码
+    this.currentlyDisplayedFrame = null;
   }
 
   updatePlaybackFps() {
@@ -152,6 +136,9 @@ export class PlaybackController {
         canvas.height = frame.displayHeight;
       }
       ctx.drawImage(frame, 0, 0, frame.displayWidth, frame.displayHeight);
+
+      // 确保错误覆盖层隐藏
+      document.getElementById('frameError').style.display = 'none';
     } else {
       console.warn("Canvas not found or frame is not a valid VideoFrame for drawing.");
       // Optionally draw a placeholder if frame is invalid during playback
@@ -208,6 +195,12 @@ export class PlaybackController {
         this.ui.drawFrameToCanvas(index); // UI handler already handles getting the frame object by index
         this.ui.updateFrameSlider(); // Update slider position and number
         this.ui.highlightFrameInList(index); // Update list highlight
+
+        // 更新当前帧索引信息显示
+        document.getElementById('currentFrameInfo').textContent = `帧 ${index + 1}`;
+        if (frameObject && frameObject.type) {
+          document.getElementById('frameType').textContent = Utils.FRAME_TYPES[frameObject.type] || '?';
+        }
       }
     }
   }

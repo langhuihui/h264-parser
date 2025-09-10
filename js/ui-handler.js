@@ -70,7 +70,193 @@ export class UIHandler {
                     <span class="value">${this.formatNALUHeader(nalu)}</span>
                 </div>
             </div>
+            ${this.generateNALUSpecificInfo(nalu)}
         `;
+  }
+
+  generateNALUSpecificInfo(nalu) {
+    // 根据NALU类型生成特定的信息
+    switch (nalu.type) {
+      case 7: // SPS
+        return this.generateSPSInfo(nalu);
+      // 可以为其他类型的NALU添加特定的处理方法
+      default:
+        return '';
+    }
+  }
+
+  generateSPSInfo(nalu) {
+    // 检查是否有SPS信息
+    if (!nalu.spsInfo || nalu.spsInfo.error) {
+      return `
+        <div class="sps-info error">
+          <h4>SPS解析错误</h4>
+          <p>${nalu.spsInfo?.error || '未知错误'}</p>
+          ${nalu.spsInfo?.errorDetails ? `<p class="error-details">${nalu.spsInfo.errorDetails}</p>` : ''}
+        </div>
+      `;
+    }
+
+    const sps = nalu.spsInfo;
+
+    return `
+      <div class="sps-info">
+        <h4>序列参数集 (SPS) 详细信息</h4>
+        
+        <div class="sps-section">
+          <h5>基本信息</h5>
+          <table class="sps-table">
+            <tr>
+              <td>视频配置 (profile_idc):</td>
+              <td>${sps.profile_idc} (${sps.profile_name})</td>
+            </tr>
+            <tr>
+              <td>Level:</td>
+              <td>${sps.level_idc / 10}</td>
+            </tr>
+            <tr>
+              <td>序列参数集ID:</td>
+              <td>${sps.seq_parameter_set_id}</td>
+            </tr>
+          </table>
+        </div>
+        
+        <div class="sps-section">
+          <h5>图像尺寸信息</h5>
+          <table class="sps-table">
+            <tr>
+              <td>宽度:</td>
+              <td>${sps.width} 像素</td>
+            </tr>
+            <tr>
+              <td>高度:</td>
+              <td>${sps.height} 像素</td>
+            </tr>
+            <tr>
+              <td>宽度(宏块数):</td>
+              <td>${sps.width_in_mbs} (${sps.pic_width_in_mbs_minus1 + 1})</td>
+            </tr>
+            <tr>
+              <td>高度(映射单元数):</td>
+              <td>${sps.height_in_map_units} (${sps.pic_height_in_map_units_minus1 + 1})</td>
+            </tr>
+          </table>
+        </div>
+        
+        <div class="sps-section">
+          <h5>视频格式</h5>
+          <table class="sps-table">
+            <tr>
+              <td>帧编码模式:</td>
+              <td>${sps.frame_mbs_only_flag ? '帧编码' : '场编码'}</td>
+            </tr>
+            <tr>
+              <td>隔行扫描:</td>
+              <td>${sps.interlaced ? '是' : '否'}</td>
+            </tr>
+            ${sps.chroma_format !== undefined ? `
+            <tr>
+              <td>色度格式:</td>
+              <td>${sps.chroma_format || '未知'}</td>
+            </tr>` : ''}
+            ${sps.bit_depth_luma !== undefined ? `
+            <tr>
+              <td>亮度位深度:</td>
+              <td>${sps.bit_depth_luma} 位</td>
+            </tr>` : ''}
+            ${sps.bit_depth_chroma !== undefined ? `
+            <tr>
+              <td>色度位深度:</td>
+              <td>${sps.bit_depth_chroma} 位</td>
+            </tr>` : ''}
+          </table>
+        </div>
+        
+        <div class="sps-section">
+          <h5>参考帧信息</h5>
+          <table class="sps-table">
+            <tr>
+              <td>最大帧编号:</td>
+              <td>${sps.max_frame_num}</td>
+            </tr>
+            <tr>
+              <td>最大参考帧数量:</td>
+              <td>${sps.max_num_ref_frames}</td>
+            </tr>
+            <tr>
+              <td>帧序列类型:</td>
+              <td>类型 ${sps.pic_order_cnt_type}</td>
+            </tr>
+          </table>
+        </div>
+
+        ${sps.frame_cropping_flag ? `
+        <div class="sps-section">
+          <h5>裁剪信息</h5>
+          <table class="sps-table">
+            <tr>
+              <td>左边界裁剪:</td>
+              <td>${sps.frame_crop_left_offset}</td>
+            </tr>
+            <tr>
+              <td>右边界裁剪:</td>
+              <td>${sps.frame_crop_right_offset}</td>
+            </tr>
+            <tr>
+              <td>上边界裁剪:</td>
+              <td>${sps.frame_crop_top_offset}</td>
+            </tr>
+            <tr>
+              <td>下边界裁剪:</td>
+              <td>${sps.frame_crop_bottom_offset}</td>
+            </tr>
+          </table>
+        </div>
+        ` : ''}
+
+        ${sps.aspect_ratio ? `
+        <div class="sps-section">
+          <h5>显示比例</h5>
+          <table class="sps-table">
+            <tr>
+              <td>宽高比:</td>
+              <td>${sps.aspect_ratio}</td>
+            </tr>
+          </table>
+        </div>
+        ` : ''}
+        
+        <div class="sps-section">
+          <h5>约束标志</h5>
+          <table class="sps-table">
+            <tr>
+              <td>constraint_set0_flag:</td>
+              <td>${sps.constraint_set0_flag}</td>
+            </tr>
+            <tr>
+              <td>constraint_set1_flag:</td>
+              <td>${sps.constraint_set1_flag}</td>
+            </tr>
+            <tr>
+              <td>constraint_set2_flag:</td>
+              <td>${sps.constraint_set2_flag}</td>
+            </tr>
+            <tr>
+              <td>constraint_set3_flag:</td>
+              <td>${sps.constraint_set3_flag}</td>
+            </tr>
+            <tr>
+              <td>constraint_set4_flag:</td>
+              <td>${sps.constraint_set4_flag}</td>
+            </tr>
+            <tr>
+              <td>constraint_set5_flag:</td>
+              <td>${sps.constraint_set5_flag}</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    `;
   }
 
   formatNALUHeader(nalu) {
@@ -389,6 +575,32 @@ export class UIHandler {
         // }
       }
       button.disabled = this.state.frames.length === 0;
+    }
+  }
+
+  // 添加 updateResolution 方法，用于更新和设置分辨率信息
+  updateResolution(width, height) {
+    // 更新分辨率文本
+    const resolutionElement = document.getElementById('resolution');
+    if (resolutionElement) {
+      resolutionElement.textContent = `${width}x${height}`;
+    }
+
+    // 如果需要，调整 Canvas 大小以匹配视频分辨率
+    const canvas = document.getElementById('frameCanvas');
+    if (canvas) {
+      // 检查当前 Canvas 尺寸是否与视频尺寸不同
+      if (canvas.width !== width || canvas.height !== height) {
+        console.log(`Adjusting canvas size to ${width}x${height}`);
+        canvas.width = width;
+        canvas.height = height;
+      }
+    }
+
+    // 可能需要存储分辨率到 state 中以便后续使用
+    if (this.state) {
+      this.state.videoWidth = width;
+      this.state.videoHeight = height;
     }
   }
 }
