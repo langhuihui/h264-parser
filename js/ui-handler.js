@@ -15,6 +15,32 @@ export class UIHandler {
     progressContainer.style.display = 'block';
     progressBar.style.width = `${percent}%`;
     progressText.textContent = message || `${percent}%`;
+
+    // 添加解码状态指示
+    this.updateDecodingStatus(percent, message);
+  }
+
+  // 新增：更新解码状态指示
+  updateDecodingStatus(percent, message) {
+    const statusIndicator = document.getElementById('decodingStatus');
+    if (!statusIndicator) return;
+
+    // 根据进度和消息判断解码状态
+    if (percent >= 60 && percent < 100 && message && message.includes('解码')) {
+      statusIndicator.style.display = 'block';
+      statusIndicator.textContent = '🔄 正在解码...';
+      statusIndicator.className = 'decoding-status active';
+    } else if (percent >= 100) {
+      statusIndicator.style.display = 'block';
+      statusIndicator.textContent = '✅ 解码完成';
+      statusIndicator.className = 'decoding-status completed';
+      // 3秒后隐藏
+      setTimeout(() => {
+        statusIndicator.style.display = 'none';
+      }, 3000);
+    } else {
+      statusIndicator.style.display = 'none';
+    }
   }
 
   hideProgress() {
@@ -26,6 +52,8 @@ export class UIHandler {
 
   updateFrameList() {
     const frameList = document.getElementById('frameList');
+    if (!frameList) return;
+
     frameList.innerHTML = '';
 
     this.state.frames.forEach((frame, index) => {
@@ -35,16 +63,28 @@ export class UIHandler {
         frameDiv.classList.add('error');
       }
 
+      // 添加解码状态指示
+      const isDecoded = frame.videoFrame && frame.videoFrame instanceof VideoFrame;
+      if (isDecoded) {
+        frameDiv.classList.add('decoded');
+      }
+
       frameDiv.innerHTML = `
                 <div class="frame-number">${index + 1}</div>
-                <div class="frame-type">${frame.type}</div>
+                <div class="frame-type">${frame.type || '?'}</div>
                 ${frame.pts !== undefined ? `<div class="frame-pts">PTS: ${frame.pts.toFixed(3)}</div>` : ''}
                 ${frame.dts !== undefined ? `<div class="frame-dts">DTS: ${frame.dts.toFixed(3)}</div>` : ''}
+                ${isDecoded ? '<div class="frame-status">✓</div>' : '<div class="frame-status">⏳</div>'}
             `;
 
       frameDiv.onclick = () => this.selectFrame(index);
       frameList.appendChild(frameDiv);
     });
+
+    // 如果有当前选中的帧，确保它在视图中
+    if (this.state.currentFrameIndex >= 0 && this.state.currentFrameIndex < this.state.frames.length) {
+      this.highlightFrameInList(this.state.currentFrameIndex);
+    }
   }
 
   updateNALUInfo(nalu) {
@@ -376,12 +416,12 @@ export class UIHandler {
   highlightFrameInList(frameIndex) {
     const frameList = document.getElementById('frameList');
     if (frameList) {
-      const items = frameList.querySelectorAll('li');
+      const items = frameList.querySelectorAll('.frame-item');
       items.forEach((item, index) => {
         if (index === frameIndex) {
           item.classList.add('active');
-          // Optional: Scroll into view
-          // item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          // 滚动到当前帧
+          item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         } else {
           item.classList.remove('active');
         }

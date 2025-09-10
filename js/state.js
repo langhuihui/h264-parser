@@ -88,6 +88,39 @@ export class AppState {
       timestamp: frame.timestamp
     };
     this.frames.push(frameObject);
+
+    // --- Update progress and UI on each decoded frame ---
+    this.updateDecodingProgress();
+    // --- End update progress ---
+  }
+
+  // 新增：更新解码进度
+  updateDecodingProgress() {
+    if (!this.webCodecChunks || this.webCodecChunks.length === 0) return;
+
+    const totalChunks = this.webCodecChunks.length;
+    const decodedFrames = this.frames.length;
+    const progressPercent = Math.min(90, Math.round((decodedFrames / totalChunks) * 100));
+
+    // 更新进度条
+    if (window.app && window.app.ui) {
+      window.app.ui.updateProgress(progressPercent, `解码进度: ${decodedFrames}/${totalChunks} 帧`);
+    }
+
+    // 实时更新帧列表（每解码5帧更新一次，避免过于频繁）
+    if (decodedFrames % 5 === 0 || decodedFrames === totalChunks) {
+      if (window.app && window.app.ui) {
+        window.app.ui.updateFrameList();
+        window.app.ui.updateFrameSlider();
+      }
+    }
+
+    // 如果是第一帧，立即显示
+    if (decodedFrames === 1 && window.app && window.app.ui) {
+      window.app.ui.selectFrame(0);
+    }
+
+    console.log(`解码进度: ${decodedFrames}/${totalChunks} 帧 (${progressPercent}%)`);
   }
 
   // 处理 WebCodecs 解码错误

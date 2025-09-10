@@ -333,7 +333,12 @@ class App {
     if (typeKey in this.frameTypeStats) {
       this.frameTypeStats[typeKey]++;
     }
-    // Note: We call displayFrameTypeStats once at the end in file-handler
+
+    // 实时更新统计显示（每10帧更新一次，避免过于频繁）
+    const total = Object.values(this.frameTypeStats).reduce((a, b) => a + b, 0);
+    if (total % 10 === 0 || total <= 5) {
+      this.displayFrameTypeStats();
+    }
   }
 
   displayFrameTypeStats() {

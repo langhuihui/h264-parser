@@ -46,14 +46,21 @@ export class FileHandler {
 
         // --- Start Decoding Chunks ---
         if (this.state.webDecoder && this.state.webDecoder.state === 'configured') {
-          this.ui.updateProgress(60, '解码视频帧...');
+          this.ui.updateProgress(60, '开始解码视频帧...');
           console.log(`Decoding ${this.state.webCodecChunks.length} prepared chunks...`);
           let i = 0;
+          const totalChunks = this.state.webCodecChunks.length;
+
           for (const chunkData of this.state.webCodecChunks) {
             try {
               const chunk = new EncodedVideoChunk(chunkData);
               console.log(++i, 'Sending chunk to decoder:', chunkData);
               this.state.webDecoder.decode(chunk);
+
+              // 更新发送进度（60-85%）
+              const sendProgress = 60 + Math.round((i / totalChunks) * 25);
+              this.ui.updateProgress(sendProgress, `发送解码数据: ${i}/${totalChunks} 块`);
+
               await new Promise(resolve => setTimeout(resolve, 40)); // Small delay
             } catch (decodeError) {
               console.error('Error decoding chunk:', chunkData, decodeError);
@@ -61,6 +68,7 @@ export class FileHandler {
             }
           }
           console.log("Finished sending chunks to decoder. Flushing...");
+          this.ui.updateProgress(85, '等待解码完成...');
           await this.state.webDecoder.flush(); // Wait for all decoding to finish
           console.log("Decoder flushed.");
         } else {
@@ -81,13 +89,18 @@ export class FileHandler {
         }
 
         // --- Display First Frame & Final Stats ---
-        this.ui.updateProgress(90, '检查解码结果...');
+        this.ui.updateProgress(95, '检查解码结果...');
 
         if (this.state.frames.length > 0) {
           console.log(`${this.state.frames.length} frames decoded. Displaying frame 0.`);
           // 添加帧类型映射到帧对象
           this.mapFrameTypesToWebCodecsFrames();
-          this.ui.selectFrame(0); // Select and draw the first frame
+
+          // 确保显示第一帧（如果还没有显示的话）
+          if (this.state.currentFrameIndex === 0) {
+            this.ui.selectFrame(0); // Select and draw the first frame
+          }
+
           document.getElementById('frameCount').textContent = this.state.frames.length; // Update frame count based on decoded frames
           this.ui.updateFrameSlider(); // Ensure slider reflects the available frames
           this.ui.updateFrameList(); // Update the list display
@@ -100,7 +113,7 @@ export class FileHandler {
 
         } else {
           console.warn("No frames were available after flushing the decoder.");
-          const canvas = document.getElementById('videoCanvas');
+          const canvas = document.getElementById('frameCanvas');
           if (canvas) {
             const ctx = canvas.getContext('2d');
             this.ui.drawPlaceholder(ctx, canvas.width, canvas.height, '未能解码任何帧');
